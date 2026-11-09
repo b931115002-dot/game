@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#edf4ed">
+<meta name="description" content="和角落小夥伴一起玩五子棋，可挑戰五級 AI 或雙人對戰。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/app-icon.svg">
+<title>角落小夥伴・五子棋</title>
+<style>
+:root{--ink:#5d554d;--sage:#91ad98;--cream:#fffaf1;--pink:#f3d8dd;--wood:#e9cb98}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;
+background:radial-gradient(circle at 12% 14%,#fff 0 3px,transparent 4px),radial-gradient(circle at 88% 76%,#fff 0 4px,transparent 5px),linear-gradient(140deg,#f8f0e6,#edf4ed 55%,#f8edf0);background-size:80px 80px,110px 110px,auto}
+.page{max-width:1050px;margin:auto;padding:24px 18px 36px}
+header{text-align:center;margin-bottom:16px}
+.tag{font-size:11px;letter-spacing:3px;color:#91a694}
+h1{margin:7px 0 4px;color:#728d79;font-size:clamp(27px,5vw,40px);letter-spacing:2px}
+header p{margin:0;color:#96897d;font-size:14px}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 245px;gap:20px;align-items:center}
+.game{background:#ffffffc9;border:1px solid #fff;border-radius:25px;padding:clamp(12px,2.7vw,24px);box-shadow:0 14px 34px #76654b20}
+.character-row{display:flex;justify-content:center;align-items:end;gap:clamp(4px,2vw,17px);height:108px;margin:-3px 0 8px}
+.character{width:clamp(48px,9vw,82px);height:100%;overflow:visible;filter:drop-shadow(0 4px 2px #77634a20)}
+.board-wrap{perspective:900px;padding:3px 5px 19px}
+#board{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));grid-template-rows:repeat(13,minmax(0,1fr));aspect-ratio:1;width:100%;padding:5.8%;border:4px solid #c3a073;border-radius:13px;background:linear-gradient(145deg,#f5dfb9,#e6c895 55%,#dcb981);box-shadow:0 5px 0 #b38b5e,0 10px 0 #98734d,0 18px 24px #68503635,inset 0 2px 5px #fff9df;transform:none;box-sizing:border-box;overflow:hidden}
+.cell{position:relative;display:grid;place-items:center;min-width:0;min-height:0;width:100%;height:100%;padding:0;margin:0;border:0;appearance:none;cursor:pointer;background:linear-gradient(to right,transparent calc(50% - .5px),#a18460 calc(50% - .5px),#a18460 calc(50% + .5px),transparent calc(50% + .5px)),linear-gradient(to bottom,transparent calc(50% - .5px),#a18460 calc(50% - .5px),#a18460 calc(50% + .5px),transparent calc(50% + .5px))}
+.cell:focus-visible{outline:2px solid #88aa96;outline-offset:-2px}
+.stone{width:78%;aspect-ratio:1;border-radius:50%;z-index:1;pointer-events:none}
+.black{background:radial-gradient(circle at 30% 25%,#777,#292929 45%,#090909 80%);box-shadow:1px 3px 4px #604a3280,inset 1px 2px 3px #fff8}
+.white{background:radial-gradient(circle at 30% 25%,#fff,#fffdf6 55%,#d5cec2);box-shadow:1px 3px 4px #604a3280,inset 1px 2px 3px #fff}
+.last:after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#d8899a;z-index:2}
+.side{display:flex;flex-direction:column;gap:12px}
+.panel{border:1px solid #eee5d8;background:#fffaf2;border-radius:17px;padding:15px}
+.status{text-align:center;background:#f1f7f1}
+.small{font-size:11px;letter-spacing:2px;color:#9a9387}
+#turn{font-size:21px;font-weight:800;margin-top:6px;color:#728d79}
+.dot{display:inline-block;width:15px;height:15px;border-radius:50%;vertical-align:-2px;margin-right:7px}
+.dot.b{background:linear-gradient(135deg,#555,#080808)}.dot.w{background:linear-gradient(135deg,#fff,#d7d0c5);border:1px solid #c8bfb4}
+.note{font-size:13px;line-height:1.9;color:#786f66}.note strong{color:#748c78}
+button.action{padding:11px 14px;border-radius:13px;font:inherit;font-weight:700;cursor:pointer;transition:.15s}
+#restart{border:0;background:#9bb8a0;color:white;box-shadow:0 4px 0 #78977e}
+#undo{border:1px solid #e9dce0;background:#fff;color:#85736f}
+button.action:hover{transform:translateY(-1px);filter:brightness(1.03)}
+.mini-friends{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;align-items:end;padding:4px 0}
+.mini-friends svg{width:100%;height:54px;filter:drop-shadow(0 3px 2px #77634a20)}
+footer{text-align:center;margin-top:18px;color:#a0968b;font-size:12px}
+@media(max-width:720px){.stage{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.status{grid-column:1/-1}.mini-friends{grid-column:1/-1}}
+@media(max-width:430px){.side{grid-template-columns:1fr}.status,.mini-friends{grid-column:auto}.character-row{height:78px}}
+
+.mode-controls{display:grid;gap:8px}
+.mode-controls label{font-size:12px;color:#8b8176;font-weight:700}
+.mode-controls select{width:100%;padding:10px 11px;border:1px solid #e8ddce;border-radius:12px;background:#fffdf8;color:#65594f;font:inherit}
+#difficulty-wrap{display:none;gap:7px}
+#difficulty{display:none}
+.level-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.level-btn{min-width:0;padding:6px 2px 5px;border:1px solid #e8ddce;border-radius:11px;background:#fffdf8;color:#75685c;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.level-btn svg{width:100%;height:37px;max-width:42px;filter:drop-shadow(0 2px 1px #77634a18)}
+.level-btn small{font-size:10px;white-space:nowrap}
+.level-btn.active{border:2px solid #91ad98;background:#edf5ed;color:#58775f;box-shadow:0 2px 0 #d4e2d4}
+.level-caption{font-size:12px;text-align:center;color:#7c8f7e;margin-top:2px}
+@media(max-width:430px){.level-btn svg{height:32px}.level-grid{gap:4px}}
+
+
+.win-overlay{position:fixed;inset:0;z-index:50;display:none;place-items:center;padding:18px;background:#44584b88;backdrop-filter:blur(5px)}
+.win-overlay.show{display:grid;animation:veilIn .25s ease-out}
+.win-card{position:relative;overflow:hidden;width:min(440px,100%);padding:26px 22px 22px;text-align:center;border:3px solid #fff;border-radius:28px;background:linear-gradient(150deg,#fffaf0,#f0f7ed 62%,#fff0f1);box-shadow:0 18px 55px #263b2c55;animation:popIn .45s cubic-bezier(.2,1.4,.4,1)}
+.win-card h2{margin:8px 0;color:#718e78;font-size:clamp(27px,7vw,38px);letter-spacing:2px}
+.win-card p{margin:0;color:#897c70;font-size:15px}
+.win-friends{display:flex;justify-content:center;align-items:end;gap:7px;height:112px;margin:14px auto 8px}
+.win-friends svg{width:18%;height:100%;max-width:72px;animation:cheer .7s ease-in-out infinite alternate;transform-origin:bottom center}
+.win-friends svg:nth-child(2){animation-delay:.12s}.win-friends svg:nth-child(3){animation-delay:.24s}.win-friends svg:nth-child(4){animation-delay:.36s}.win-friends svg:nth-child(5){animation-delay:.48s}
+.win-actions{display:flex;gap:10px;justify-content:center;margin-top:20px}
+.win-actions button{border:0;border-radius:14px;padding:11px 18px;font:inherit;font-weight:800;cursor:pointer}
+#win-again{background:#91ad98;color:white;box-shadow:0 4px 0 #718d78}
+#win-close{background:#fff;color:#82766b;border:1px solid #e7ddd0}
+.confetti{position:absolute;top:-16px;width:9px;height:15px;border-radius:3px;animation:fall 2.2s linear forwards;pointer-events:none}
+@keyframes veilIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{0%{transform:scale(.75) translateY(15px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+@keyframes cheer{from{transform:translateY(0) rotate(-7deg)}to{transform:translateY(-13px) rotate(7deg)}}
+@keyframes fall{to{transform:translateY(520px) rotate(720deg);opacity:.15}}
+@media(prefers-reduced-motion:reduce){.win-card,.win-overlay,.win-friends svg,.confetti{animation:none!important}}
+
+body{background:linear-gradient(180deg,#edf1eb 0%,#e5e9e0 48%,#d9e1d8 100%);position:relative;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.30;background-image:url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNDQwIDkwMCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0ibWlzdCIgeDI9IjAiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjZjhmYWY0Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjY2JkNmNiIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+CjxyZWN0IHdpZHRoPSIxNDQwIiBoZWlnaHQ9IjkwMCIgZmlsbD0idXJsKCNtaXN0KSIvPgo8ZyBmaWxsPSIjNzU4Nzc5IiBvcGFjaXR5PSIuMzQiPgo8cGF0aCBkPSJNMCA0ODBMMTMwIDM1MCAyMTAgNDA1IDM1NSAyMTAgNTAwIDQzMCA2MjUgMjgwIDc3MCA0NzAgOTMwIDI2MCAxMTEwIDQ1MCAxMjQwIDMwMCAxNDQwIDQ3MFY5MDBIMFoiLz4KPHBhdGggZD0iTTAgNTcwTDE4MCA0MjAgMzMwIDUzMCA1MTAgMzYwIDY5MCA1NjAgODUwIDM5MCAxMDUwIDU2MCAxMjIwIDQwMCAxNDQwIDU3MFY5MDBIMFoiIG9wYWNpdHk9Ii42NSIvPgo8L2c+CjxnIGZpbGw9IiNmM2Y1ZWUiIG9wYWNpdHk9Ii43MiI+PHBhdGggZD0iTTI4NSAyOTBsNzAtODAgNTUgODQtNTUtMjR6TTg2NSAzNDBsNjUtODAgNzAgOTItNzItMzB6TTExODUgMzY1bDU1LTY1IDYwIDc1LTYyLTI0eiIvPjwvZz4KPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNjU3YjZiIiBzdHJva2Utd2lkdGg9IjgiIG9wYWNpdHk9Ii4yMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KPHBhdGggZD0iTTAgNjQwcTIxMC04MCAzOTAgMHQzOTAgMCAzOTAgMCAyNzAgMCIvPjxwYXRoIGQ9Ik0wIDcwMHEyMjAtNTUgNDQwIDB0NDQwIDAgNTYwIDAiLz4KPHBhdGggZD0iTTE0MCA2MTBxMjUtNzAgNDUtMTEwbS00NSAxMTBxLTQwLTUwLTU1LTg1bTU1IDg1cTQwLTU1IDY1LTg1TTEyNjAgNjIwcTMwLTc1IDUwLTExMG0tNTAgMTEwcS0zNS01NS02MC04Mm02MCA4MnE0MC02MCA3NS04NSIvPgo8L2c+CjxnIGZpbGw9IiM1MzZjNWMiIG9wYWNpdHk9Ii4yMiI+PGNpcmNsZSBjeD0iMTgwIiBjeT0iNTIwIiByPSIzOCIvPjxjaXJjbGUgY3g9IjIyMCIgY3k9IjUzNSIgcj0iMzAiLz48Y2lyY2xlIGN4PSIxMjc1IiBjeT0iNTI1IiByPSI0NSIvPjxjaXJjbGUgY3g9IjEzMjAiIGN5PSI1NDUiIHI9IjM0Ii8+PC9nPgo8L3N2Zz4=');background-size:cover;background-position:center;background-repeat:no-repeat;background:
+radial-gradient(ellipse at 15% 70%,#6d8276 0 2%,transparent 2.5%),
+radial-gradient(ellipse at 22% 73%,#87978a 0 7%,transparent 7.5%),
+radial-gradient(ellipse at 78% 67%,#87978a 0 9%,transparent 9.5%),
+linear-gradient(155deg,transparent 0 48%,#aab6a8 48.2% 49%,transparent 49.3%),
+linear-gradient(25deg,transparent 0 58%,#c1cabe 58.2% 59%,transparent 59.3%),
+linear-gradient(180deg,transparent 0 72%,#c4cec3 72% 100%)}
+.board-wrap{perspective:1100px;perspective-origin:50% 42%;overflow:visible}
+#board{transform-style:preserve-3d;transform-origin:center center;transition:transform .28s ease,box-shadow .28s ease}
+.view-controls{display:flex;gap:7px;align-items:center;justify-content:center;margin:0 0 9px;flex-wrap:wrap}
+.view-controls button{border:1px solid #d9dfd6;background:#f9fbf7;color:#64766a;border-radius:10px;padding:6px 10px;font:inherit;font-size:12px;cursor:pointer}
+.view-controls input{width:90px;accent-color:#819b88}
+.top-system{position:fixed;right:14px;top:12px;z-index:30;display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #ffffffc9;border-radius:14px;background:#f9fbf0e8;box-shadow:0 4px 16px #344a3b20;font-size:11px;color:#596d5e;backdrop-filter:blur(8px)}
+.mqtt-led{width:8px;height:8px;border-radius:50%;background:#c9a16c;box-shadow:0 0 0 3px #c9a16c22}
+.mqtt-led.online{background:#63a875;box-shadow:0 0 0 3px #63a87525}
+.mqtt-led.offline{background:#c47e7e;box-shadow:0 0 0 3px #c47e7e25}
+.online-panel{display:none;gap:8px}
+.online-panel.show{display:grid}
+.online-panel input{width:100%;min-width:0;padding:9px;border:1px solid #e4ded1;border-radius:10px;background:#fffdf8;font:inherit}
+.online-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.online-actions button{border:0;border-radius:10px;padding:9px 6px;background:#91ad98;color:#fff;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.online-actions button.secondary{background:#e9eee7;color:#667a6a}
+.chat-box{position:fixed;right:14px;bottom:14px;width:min(290px,calc(100vw - 28px));z-index:35;border:1px solid #fff;border-radius:17px;background:#fdfcf6ed;box-shadow:0 8px 28px #344a3b28;backdrop-filter:blur(10px);overflow:hidden}
+.chat-head{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#e9f0e7;color:#627866;font-size:12px;font-weight:800}
+.chat-head button{border:0;background:transparent;color:#627866;font-size:16px;cursor:pointer}
+.chat-messages{height:120px;overflow:auto;padding:8px 10px;font-size:12px;color:#665f55}
+.chat-line{margin:0 0 7px;line-height:1.5;overflow-wrap:anywhere}
+.chat-line b{color:#718d79}
+.chat-send{display:flex;gap:5px;padding:8px;border-top:1px solid #eee8dd}
+.chat-send input{flex:1;min-width:0;border:1px solid #e7dfd3;border-radius:9px;padding:8px;font:inherit;font-size:12px}
+.chat-send button{border:0;border-radius:9px;background:#91ad98;color:white;padding:0 11px;font-weight:700}
+.chat-collapsed .chat-messages,.chat-collapsed .chat-send{display:none}
+.net-hint{font-size:10px;line-height:1.5;color:#9a786e}
+@media(max-width:720px){.top-system{top:7px;right:7px;padding:6px 8px}.page{padding-top:54px}.chat-box{right:8px;bottom:8px;width:min(255px,calc(100vw - 16px))}.chat-messages{height:90px}}
+</style>
+</head>
+<body>
+<!-- 原創 SVG 小夥伴造型：完整身體、臉部與配件 -->
+<svg aria-hidden="true" width="0" height="0" style="position:absolute">
+<defs>
+ <symbol id="shiro" viewBox="0 0 100 110">
+  <path d="M22 37 Q8 12 26 10 Q40 10 42 31 Q58 25 67 31 Q67 9 83 12 Q99 18 83 43 Q96 62 88 88 Q79 108 51 106 Q20 108 11 87 Q3 61 22 37Z" fill="#fffdf6" stroke="#b8b1a7" stroke-width="2.5"/>
+  <ellipse cx="38" cy="59" rx="3" ry="4" fill="#514b47"/><ellipse cx="65" cy="59" rx="3" ry="4" fill="#514b47"/>
+  <path d="M47 69 Q51 73 55 69" fill="none" stroke="#8d7770" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="28" cy="69" rx="6" ry="3" fill="#f4d7d7"/><ellipse cx="75" cy="69" rx="6" ry="3" fill="#f4d7d7"/>
+  <path d="M20 90 Q50 80 80 91" fill="none" stroke="#d7c8bd" stroke-width="2"/>
+ </symbol>
+ <symbol id="penguin" viewBox="0 0 100 110">
+  <path d="M18 40 Q17 12 50 10 Q83 12 82 42 L88 87 Q83 106 50 106 Q17 106 12 87Z" fill="#a9c99d" stroke="#7d9e77" stroke-width="2.5"/>
+  <ellipse cx="50" cy="68" rx="27" ry="29" fill="#f8f5df"/>
+  <ellipse cx="38" cy="49" rx="3" ry="4" fill="#514b47"/><ellipse cx="62" cy="49" rx="3" ry="4" fill="#514b47"/>
+  <path d="M44 59 Q50 64 56 59 Q50 70 44 59" fill="#e5b86b"/>
+  <path d="M23 79 Q7 88 17 94 Q29 93 32 84 M77 79 Q93 88 83 94 Q71 93 68 84" fill="#a9c99d" stroke="#7d9e77" stroke-width="2"/>
+ </symbol>
+ <symbol id="neko" viewBox="0 0 100 110">
+  <path d="M15 42 L13 14 Q13 8 20 12 L39 29 Q51 24 62 29 L81 12 Q88 8 87 16 L85 44 Q96 69 83 91 Q70 108 50 106 Q25 108 13 89 Q3 66 15 42Z" fill="#f2e9d8" stroke="#c9bca8" stroke-width="2.5"/>
+  <path d="M17 19 L35 33 L18 39Z M83 19 L65 33 L82 39Z" fill="#efc4c8"/>
+  <ellipse cx="37" cy="58" rx="3" ry="4" fill="#514b47"/><ellipse cx="63" cy="58" rx="3" ry="4" fill="#514b47"/>
+  <path d="M46 67 Q50 71 54 67" fill="none" stroke="#8d7770" stroke-width="2" stroke-linecap="round"/>
+  <path d="M15 64 L3 61 M15 71 L3 73 M85 64 L97 61 M85 71 L97 73" stroke="#a99b8d" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="50" cy="91" rx="17" ry="10" fill="#e6dac8"/>
+ </symbol>
+ <symbol id="tokage" viewBox="0 0 100 110">
+  <path d="M16 42 Q22 16 52 17 Q78 18 84 46 L83 82 Q77 105 48 105 Q19 103 14 82Z" fill="#a9d6e4" stroke="#7eafbf" stroke-width="2.5"/>
+  <path d="M75 78 Q96 76 94 91 Q83 103 67 91" fill="#a9d6e4" stroke="#7eafbf" stroke-width="2.5"/>
+  <path d="M27 24 Q21 5 38 8 Q48 10 49 23" fill="#a9d6e4" stroke="#7eafbf" stroke-width="2.5"/>
+  <ellipse cx="38" cy="52" rx="3" ry="4" fill="#514b47"/><ellipse cx="64" cy="52" rx="3" ry="4" fill="#514b47"/>
+  <path d="M46 63 Q51 67 56 63" fill="none" stroke="#688b91" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="30" cy="65" rx="6" ry="3" fill="#e8bfc0"/><ellipse cx="72" cy="65" rx="6" ry="3" fill="#e8bfc0"/>
+  <path d="M32 88 Q50 79 69 89" fill="none" stroke="#78aab9" stroke-width="2"/>
+ </symbol>
+ <symbol id="tonkatsu" viewBox="0 0 100 110">
+  <path d="M14 85 Q9 66 22 48 Q33 31 52 33 Q75 31 85 51 Q96 72 84 91 Q69 107 47 105 Q23 105 14 85Z" fill="#c99b72" stroke="#a87954" stroke-width="2.5"/>
+  <path d="M24 51 Q49 37 77 53 Q88 72 76 89 Q50 100 24 88 Q13 70 24 51Z" fill="#f0dfbf"/>
+  <ellipse cx="38" cy="65" rx="3" ry="4" fill="#514b47"/><ellipse cx="62" cy="65" rx="3" ry="4" fill="#514b47"/>
+  <path d="M46 74 Q50 78 54 74" fill="none" stroke="#8d7770" stroke-width="2" stroke-linecap="round"/>
+  <path d="M28 91 Q50 84 72 91" fill="none" stroke="#a87954" stroke-width="2"/>
+ </symbol>
+</defs></svg>
+<div class="top-system"><span class="mqtt-led offline" id="mqtt-led"></span><span id="mqtt-status">MQTT 未連線</span><span>·</span><span id="room-status">未加入房間</span></div>
+<div class="page">
+<header><div class="tag">SUMIKKO GURASHI · LITTLE GAME TIME</div><h1>角落小夥伴五子棋</h1><p>大家一起窩在角落，來一場輕鬆的棋局吧！</p></header>
+<main class="stage">
+<section class="game">
+ <div class="character-row" aria-label="角落小夥伴全身角色">
+  <svg class="character" viewBox="0 0 100 110"><use href="#shiro"/></svg>
+  <svg class="character" viewBox="0 0 100 110"><use href="#penguin"/></svg>
+  <svg class="character" viewBox="0 0 100 110"><use href="#neko"/></svg>
+  <svg class="character" viewBox="0 0 100 110"><use href="#tokage"/></svg>
+  <svg class="character" viewBox="0 0 100 110"><use href="#tonkatsu"/></svg>
+ </div>
+ <div class="view-controls">
+  <button type="button" id="rotate-left">↶ 左旋</button>
+  <button type="button" id="rotate-reset">正視角</button>
+  <button type="button" id="rotate-right">右旋 ↷</button>
+  <label style="font-size:11px;color:#8b8176">俯視 <input id="tilt-range" type="range" min="0" max="38" value="0"></label>
+ </div>
+ <div class="board-wrap"><div id="board" aria-label="五子棋棋盤"></div></div>
+</section>
+<aside class="side">
+ <div class="panel mode-controls">
+  <label for="mode">🎮 遊戲模式</label>
+  <select id="mode"><option value="pvp">雙人對戰</option><option value="ai">挑戰 AI 電腦</option><option value="online">網路對打（MQTT）</option></select>
+  <div id="difficulty-wrap">
+   <label>🌟 選擇 AI 對手</label>
+   <div class="level-grid" role="group" aria-label="AI 難度">
+    <button class="level-btn" data-level="1" aria-label="Lv.1 新手"><svg viewBox="0 0 100 110"><use href="#shiro"/></svg><small>Lv.1</small></button>
+    <button class="level-btn" data-level="2" aria-label="Lv.2 初級"><svg viewBox="0 0 100 110"><use href="#penguin"/></svg><small>Lv.2</small></button>
+    <button class="level-btn active" data-level="3" aria-label="Lv.3 中級"><svg viewBox="0 0 100 110"><use href="#neko"/></svg><small>Lv.3</small></button>
+    <button class="level-btn" data-level="4" aria-label="Lv.4 高級"><svg viewBox="0 0 100 110"><use href="#tokage"/></svg><small>Lv.4</small></button>
+    <button class="level-btn" data-level="5" aria-label="Lv.5 高手"><svg viewBox="0 0 100 110"><use href="#tonkatsu"/></svg><small>Lv.5</small></button>
+   </div>
+   <div class="level-caption" id="level-caption">貓咪・中級</div>
+   <select id="difficulty" aria-hidden="true" tabindex="-1">
+    <option value="1">Lv.1</option><option value="2">Lv.2</option><option value="3" selected>Lv.3</option><option value="4">Lv.4</option><option value="5">Lv.5</option>
+   </select>
+  </div>
+  <div class="panel online-panel" id="online-panel">
+   <label>🌐 網路房間</label>
+   <input id="room-code" maxlength="8" placeholder="輸入 6 位房間代碼">
+   <div class="online-actions">
+    <button type="button" id="create-room">建立房間（黑棋）</button>
+    <button type="button" id="join-room" class="secondary">加入房間（白棋）</button>
+   </div>
+   <div class="net-hint">公共 MQTT 測試服務：房間訊息可能被第三方讀取。請勿輸入個資或私密內容。</div>
+  </div>
+ </div>
+ <div class="panel status"><div class="small">現在輪到誰？</div><div id="turn"><span class="dot b"></span>黑棋回合</div><div id="thinking" style="display:none;color:#8ca28f;font-size:12px;margin-top:5px">小夥伴正在思考⋯</div></div>
+ <div class="panel note"><strong>🌼 小夥伴遊戲規則</strong><br>黑白雙方輪流落子。<br>橫、直、斜連成五顆就獲勝。<br><br>已下棋：<b id="count">0</b> 手</div>
+ <button class="action" id="restart">↻ 再玩一局</button>
+ <button class="action" id="undo">↶ 悔棋一步</button>
+ <div class="mini-friends" aria-label="角落小夥伴全身角色">
+  <svg viewBox="0 0 100 110"><use href="#shiro"/></svg><svg viewBox="0 0 100 110"><use href="#penguin"/></svg><svg viewBox="0 0 100 110"><use href="#neko"/></svg><svg viewBox="0 0 100 110"><use href="#tokage"/></svg><svg viewBox="0 0 100 110"><use href="#tonkatsu"/></svg>
+ </div>
+</aside>
+</main>
+<footer>☁️ 軟綿綿的午後・和小夥伴一起玩</footer>
+<div class="win-overlay" id="win-overlay" role="dialog" aria-modal="true" aria-labelledby="win-title">
+ <div class="win-card">
+  <div class="small">✨ SUMIKKO PARTY TIME ✨</div>
+  <h2 id="win-title">太棒了！你獲勝！</h2>
+  <p id="win-message">小夥伴們一起為你歡呼！</p>
+  <div class="win-friends" aria-hidden="true">
+   <svg viewBox="0 0 100 110"><use href="#shiro"/></svg>
+   <svg viewBox="0 0 100 110"><use href="#penguin"/></svg>
+   <svg viewBox="0 0 100 110"><use href="#neko"/></svg>
+   <svg viewBox="0 0 100 110"><use href="#tokage"/></svg>
+   <svg viewBox="0 0 100 110"><use href="#tonkatsu"/></svg>
+  </div>
+  <p>🎊 棒棒！再來一局吧！ 🎊</p>
+  <div class="win-actions"><button id="win-again">再玩一局</button><button id="win-close">看看棋盤</button></div>
+ </div>
+</div>
+
+</div>
+<div class="chat-box" id="chat-box">
+ <div class="chat-head"><span>💬 小夥伴聊天室</span><button id="chat-toggle" aria-label="收合聊天室">−</button></div>
+ <div class="chat-messages" id="chat-messages"><div class="chat-line">歡迎來到棋局聊天室！加入同一房間即可聊天。</div></div>
+ <form class="chat-send" id="chat-form"><input id="chat-input" maxlength="120" placeholder="輸入訊息…" autocomplete="off"><button type="submit">送出</button></form>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+<script>
+const N=13, boardEl=document.getElementById('board');
+let board=Array(N*N).fill(0), turn=1, history=[], ended=false, aiBusy=false, gameToken=0;
+const modeEl=document.getElementById('mode'), difficultyEl=document.getElementById('difficulty');
+let mqttClient=null, roomCode='', playerSide=0, networkReady=false, remoteApplying=false;
+const mqttStatus=document.getElementById('mqtt-status'), mqttLed=document.getElementById('mqtt-led');
+const roomStatus=document.getElementById('room-status');
+const gameTopic=()=>`sumikko-gomoku-v2/${roomCode}/game`;
+const chatTopic=()=>`sumikko-gomoku-v2/${roomCode}/chat`;
+const setMqttStatus=(label,state='offline')=>{mqttStatus.textContent=label;mqttLed.className='mqtt-led '+state};
+function addChat(text,who='系統'){const line=document.createElement('div');line.className='chat-line';const b=document.createElement('b');b.textContent=who+'：';line.append(b,document.createTextNode(text));const box=document.getElementById('chat-messages');box.appendChild(line);box.scrollTop=box.scrollHeight}
+function disconnectMQTT(){if(mqttClient){try{mqttClient.end(true)}catch(e){}mqttClient=null}networkReady=false;roomCode='';playerSide=0;roomStatus.textContent='未加入房間';setMqttStatus('MQTT 未連線','offline')}
+function connectRoom(code,side){
+ if(!window.mqtt){addChat('MQTT 程式庫載入失敗，請確認網路連線。');return}
+ disconnectMQTT();roomCode=code;playerSide=side;roomStatus.textContent=`房間 ${code} · ${side===1?'黑棋':'白棋'}`;
+ setMqttStatus('MQTT 連線中…','');
+ const clientId='sg_'+Math.random().toString(16).slice(2,12);
+ mqttClient=mqtt.connect('wss://broker.emqx.io:8084/mqtt',{clientId,clean:true,connectTimeout:8000,reconnectPeriod:2500,keepalive:30});
+ mqttClient.on('connect',()=>{networkReady=true;setMqttStatus('MQTT 已連線','online');mqttClient.subscribe([gameTopic(),chatTopic()]);addChat('已連線，房間 '+code+'。你是'+(side===1?'黑棋':'白棋')+'。');mqttClient.publish(gameTopic(),JSON.stringify({type:'hello',side,from:clientId,at:Date.now()}));});
+ mqttClient.on('reconnect',()=>setMqttStatus('MQTT 重新連線中…',''));
+ mqttClient.on('close',()=>{networkReady=false;setMqttStatus('MQTT 已斷線','offline')});
+ mqttClient.on('error',()=>setMqttStatus('MQTT 連線錯誤','offline'));
+ mqttClient.on('message',(topic,payload)=>{let msg;try{msg=JSON.parse(payload.toString())}catch(e){return}
+  if(msg.from===clientId)return;
+  if(topic===chatTopic()&&msg.type==='chat'){addChat(msg.text,'對手');return}
+  if(topic===gameTopic()&&msg.type==='hello'){
+   addChat('對手已進入房間。');
+   if(playerSide===1&&mqttClient)mqttClient.publish(gameTopic(),JSON.stringify({type:'snapshot',board,turn,history,ended,from:clientId}));
+   return;
+  }
+  if(topic===gameTopic()&&msg.type==='snapshot'&&playerSide===2&&Array.isArray(msg.board)&&msg.board.length===N*N){
+   board=msg.board.map(v=>v===1||v===2?v:0);history=Array.isArray(msg.history)?msg.history.filter(i=>Number.isInteger(i)&&i>=0&&i<N*N):[];
+   turn=msg.turn===1||msg.turn===2?msg.turn:1;ended=!!msg.ended;draw();addChat('已同步房間棋盤。');return;
+  }
+  if(topic===gameTopic()&&msg.type==='move'&&aiMode()===false&&modeEl.value==='online'){
+   if(msg.side===playerSide||ended||turn===playerSide)return;
+   if(Number.isInteger(msg.index)&&msg.index>=0&&msg.index<N*N&&!board[msg.index]){
+    remoteApplying=true;board[msg.index]=msg.side;history.push(msg.index);playStoneSound(msg.side);
+    if(won(msg.index,msg.side)){endGame(msg.side)}else{turn=3-msg.side;draw()}
+    remoteApplying=false;
+   }
+  }
+  if(topic===gameTopic()&&msg.type==='restart'){reset(false);addChat('對手重新開始了棋局。')}
+ });
+}
+function sendNetMove(index,side){if(networkReady&&mqttClient)mqttClient.publish(gameTopic(),JSON.stringify({type:'move',index,side,from:mqttClient.options.clientId,at:Date.now()}))}
+
+const levelNames={1:'小白熊・新手',2:'企鵝角色・初級',3:'貓咪・中級',4:'蜥蜴・高級',5:'炸豬排・高手'};
+document.querySelectorAll('.level-btn').forEach(btn=>btn.addEventListener('click',()=>{
+ difficultyEl.value=btn.dataset.level;
+ document.querySelectorAll('.level-btn').forEach(b=>b.classList.toggle('active',b===btn));
+ document.getElementById('level-caption').textContent=levelNames[Number(btn.dataset.level)];
+ reset();
+}));
+const dirs=[[0,1],[1,0],[1,1],[1,-1]];
+let audioCtx=null;
+function playStoneSound(side){
+ try{
+  audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended')audioCtx.resume();
+  const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+  osc.type='sine';osc.frequency.setValueAtTime(side===1?420:560,audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(side===1?190:260,audioCtx.currentTime+.075);
+  gain.gain.setValueAtTime(.0001,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(.12,audioCtx.currentTime+.008);gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+.11);
+  osc.connect(gain);gain.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+.12);
+ }catch(e){}
+}
+const aiMode=()=>modeEl.value==='ai';
+function won(i,p){
+ const r=Math.floor(i/N),c=i%N;
+ return dirs.some(([dr,dc])=>{let n=1;for(const s of [-1,1]){let y=r+dr*s,x=c+dc*s;while(y>=0&&y<N&&x>=0&&x<N&&board[y*N+x]===p){n++;y+=dr*s;x+=dc*s}}return n>=5});
+}
+function candidates(){
+ const s=new Set();
+ if(!history.length)return [Math.floor(N/2)*N+Math.floor(N/2)];
+ for(const i of history){const r=Math.floor(i/N),c=i%N;
+  for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){const y=r+dr,x=c+dc;if(y>=0&&y<N&&x>=0&&x<N&&board[y*N+x]===0)s.add(y*N+x)}
+ }
+ return [...s];
+}
+function patternScore(i,p){
+ const r=Math.floor(i/N),c=i%N;let score=0;
+ for(const [dr,dc] of dirs){
+  let count=1,open=0;
+  for(const s of [-1,1]){let y=r+dr*s,x=c+dc*s;while(y>=0&&y<N&&x>=0&&x<N&&board[y*N+x]===p){count++;y+=dr*s;x+=dc*s}
+   if(y>=0&&y<N&&x>=0&&x<N&&board[y*N+x]===0)open++}
+  if(count>=5)score+=10000000;
+  else if(count===4)score+=open===2?900000:120000;
+  else if(count===3)score+=open===2?12000:1600;
+  else if(count===2)score+=open===2?500:80;
+  else if(count===1&&open===2)score+=8;
+ }
+ return score;
+}
+function chooseAI(level){
+ const moves=candidates();
+ let ranked=moves.map(i=>{
+  board[i]=2;const attack=patternScore(i,2);board[i]=0;
+  board[i]=1;const defense=patternScore(i,1);board[i]=0;
+  return {i,attack,defense,score:attack+defense*(level===1?.2:level===2?.65:level===3?.9:1.15)};
+ }).sort((a,b)=>b.score-a.score);
+ if(level===1){const pool=ranked.slice(0,Math.min(7,ranked.length));return pool[Math.floor(Math.random()*pool.length)].i}
+ if(level<=3)return ranked[0].i;
+ // Levels 4–5 look one move further ahead among the strongest candidate squares.
+ let best=ranked[0],bestValue=-Infinity;
+ for(const m of ranked.slice(0,level===4?6:10)){
+  board[m.i]=2;let opponentBest=0;
+  for(const j of candidates()){if(board[j]!==0)continue;board[j]=1;opponentBest=Math.max(opponentBest,patternScore(j,1));board[j]=0}
+  board[m.i]=0;
+  const value=m.score-opponentBest*(level===4?.3:.48);
+  if(value>bestValue){bestValue=value;best=m}
+ }
+ return best.i;
+}
+function draw(){
+ boardEl.innerHTML='';
+ board.forEach((v,i)=>{const b=document.createElement('button');b.type='button';b.className='cell'+(history.at(-1)===i?' last':'');
+  b.setAttribute('aria-label',`${Math.floor(i/N)+1}行${i%N+1}列`);
+  if(v){const s=document.createElement('span');s.className='stone '+(v===1?'black':'white');b.appendChild(s)}
+  b.addEventListener('click',()=>humanMove(i));boardEl.appendChild(b);
+ });
+ document.getElementById('count').textContent=history.length;
+ document.getElementById('turn').innerHTML=ended?'🏆 本局結束':`<span class="dot ${turn===1?'b':'w'}"></span>${aiMode()?(turn===1?'你的回合':'AI 回合'):(modeEl.value==='online'?(turn===playerSide?'你的回合':'等待對手落子'):(turn===1?'黑棋回合':'白棋回合'))}`;
+ document.getElementById('thinking').style.display=aiBusy?'block':'none';
+}
+function celebrate(p){
+ const overlay=document.getElementById('win-overlay');
+ const title=document.getElementById('win-title');
+ const msg=document.getElementById('win-message');
+ const wonByHuman=aiMode()?p===1:(modeEl.value==='online'?p===playerSide:true);
+ title.textContent=wonByHuman?'太棒了！你獲勝！':(modeEl.value==='online'?'對手獲勝！':'這局 AI 獲勝！');
+ msg.textContent=modeEl.value==='online'?(wonByHuman?'小夥伴們一起為你歡呼！':'對手下得真精彩，下一局再加油！'):(aiMode()?(wonByHuman?'小夥伴們一起為你歡呼！':'別灰心，小夥伴陪你再挑戰一次！'):(p===1?'黑棋獲勝！小夥伴們一起歡呼！':'白棋獲勝！小夥伴們一起歡呼！'));
+ overlay.classList.add('show');
+ overlay.querySelectorAll('.confetti').forEach(x=>x.remove());
+ const colors=['#efb7c1','#f4d58a','#a8c9ad','#a9cde0','#d8b9e8'];
+ for(let i=0;i<34;i++){const c=document.createElement('i');c.className='confetti';c.style.left=(Math.random()*100)+'%';c.style.background=colors[i%colors.length];c.style.animationDelay=(Math.random()*.9)+'s';c.style.transform=`rotate(${Math.random()*180}deg)`;overlay.appendChild(c)}
+}
+function endGame(p){ended=true;draw();setTimeout(()=>celebrate(p),120)}
+function place(i){
+ const p=turn;board[i]=p;history.push(i);playStoneSound(p);
+ if(modeEl.value==='online'&&!remoteApplying)sendNetMove(i,p);
+ if(won(i,p)){endGame(p);return}
+ if(history.length===N*N){ended=true;draw();setTimeout(()=>{document.getElementById('win-title').textContent='平手！好精彩！';document.getElementById('win-message').textContent='雙方都很努力，小夥伴送上掌聲！';document.getElementById('win-overlay').classList.add('show')},120);return}
+ turn=3-p;draw();
+ if(aiMode()&&turn===2)runAI();
+}
+function humanMove(i){if(ended||aiBusy||board[i]||(aiMode()&&turn===2))return;
+ if(modeEl.value==='online'&&(!networkReady||turn!==playerSide)){addChat(networkReady?'現在不是你的回合。':'請先連線加入房間。');return}
+ place(i)}
+function runAI(){
+ aiBusy=true;draw();const token=gameToken;
+ setTimeout(()=>{if(token!==gameToken||ended||!aiMode()||turn!==2)return;
+  const i=chooseAI(Number(difficultyEl.value));aiBusy=false;if(i!==undefined)place(i);else draw();
+ },450);
+}
+function reset(notify=true){document.getElementById('win-overlay').classList.remove('show');if(notify&&modeEl.value==='online'&&networkReady&&mqttClient)mqttClient.publish(gameTopic(),JSON.stringify({type:'restart',from:mqttClient.options.clientId}));gameToken++;board=Array(N*N).fill(0);turn=1;history=[];ended=false;aiBusy=false;draw()}
+document.getElementById('restart').addEventListener('click',()=>{if(history.length&&!confirm('要重新開始這一局嗎？'))return;reset()});
+document.getElementById('win-again').addEventListener('click',reset);
+document.getElementById('win-close').addEventListener('click',()=>document.getElementById('win-overlay').classList.remove('show'));
+document.getElementById('win-overlay').addEventListener('click',e=>{if(e.target.id==='win-overlay')e.currentTarget.classList.remove('show')});
+document.getElementById('undo').addEventListener('click',()=>{
+ if(modeEl.value==='online'){addChat('網路對戰暫不支援悔棋，避免雙方棋盤不同步。');return}
+
+ if(!history.length||ended||aiBusy)return;
+ if(aiMode()){
+  if(history.length>=2){board[history.pop()]=0;board[history.pop()]=0}
+  else board[history.pop()]=0;
+  turn=1;
+ }else{board[history.pop()]=0;turn=3-turn}
+ draw();
+});
+modeEl.addEventListener('change',()=>{disconnectMQTT();document.getElementById('difficulty-wrap').style.display=aiMode()?'grid':'none';document.getElementById('online-panel').classList.toggle('show',modeEl.value==='online');reset()});
+document.getElementById('create-room').addEventListener('click',()=>{const code=Math.random().toString(36).slice(2,8).toUpperCase();document.getElementById('room-code').value=code;connectRoom(code,1)});
+document.getElementById('join-room').addEventListener('click',()=>{const code=document.getElementById('room-code').value.trim().toUpperCase();if(!/^[A-Z0-9]{4,8}$/.test(code)){addChat('請輸入 4–8 位英數房間代碼。');return}connectRoom(code,2)});
+document.getElementById('chat-form').addEventListener('submit',e=>{e.preventDefault();const input=document.getElementById('chat-input'),text=input.value.trim();if(!text)return;if(modeEl.value==='online'&&networkReady&&mqttClient){mqttClient.publish(chatTopic(),JSON.stringify({type:'chat',text,from:mqttClient.options.clientId}));addChat(text,'我')}else addChat(text,'我（本機）');input.value=''});
+document.getElementById('chat-toggle').addEventListener('click',()=>{const box=document.getElementById('chat-box');box.classList.toggle('chat-collapsed');document.getElementById('chat-toggle').textContent=box.classList.contains('chat-collapsed')?'+':'−'});
+let boardYaw=0,boardTilt=0;
+function applyBoardView(){boardE.style.transform=`rotateX(${boardTilt}deg) rotateZ(${boardYaw}deg)`;document.getElementById('tilt-range').value=boardTilt}
+document.getElementById('rotate-left').addEventListener('click',()=>{boardYaw-=8;applyBoardView()});
+document.getElementById('rotate-right').addEventListener('click',()=>{boardYaw+=8;applyBoardView()});
+document.getElementById('rotate-reset').addEventListener('click',()=>{boardYaw=0;boardTilt=0;applyBoardView()});
+document.getElementById('tilt-range').addEventListener('input',e=>{boardTilt=Number(e.target.value);applyBoardView()});
+difficultyEl.addEventListener('change',reset);
+draw();
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+</script>
+</body></html>
